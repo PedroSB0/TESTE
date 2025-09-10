@@ -1,7 +1,8 @@
 
-'''
+"""
 
 from sklearn.linear_model import LinearRegression
+
 # Dados de exemplo
 X = [[1], [2], [3], [4]]  # entradas
 y = [2, 4, 6, 8]          # saídas
@@ -13,13 +14,11 @@ modelo.fit(X, y)
 # Fazer previsão
 print(modelo.predict([[5]]))
 
-
-'''
+"""
 
 #----------------------------------------------------------------------------------------------------------
 
 """
-
 from sklearn.datasets import load_diabetes
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -44,7 +43,6 @@ print("Erro quadrático médio:", mean_squared_error(y_test, y_pred))
 #----------------------------------------------------------------------------------------------------------
 
 """
-
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -69,7 +67,6 @@ print("Acurácia:", accuracy_score(y_test, y_pred))
 #----------------------------------------------------------------------------------------------------------
 
 """
-
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_diabetes
 from sklearn.linear_model import LinearRegression
@@ -102,7 +99,6 @@ plt.show()
 #----------------------------------------------------------------------------------------------------------
 
 """
-
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
@@ -132,7 +128,6 @@ plt.show()
 #----------------------------------------------------------------------------------------------------------
 
 """
-
 from sklearn.datasets import load_diabetes
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -151,13 +146,11 @@ y_pred = modelo.predict(X_test)
 print("MSE:", mean_squared_error(y_test, y_pred))
 print("MAE:", mean_absolute_error(y_test, y_pred))
 print("R²:", r2_score(y_test, y_pred))
-
 """
 
 #----------------------------------------------------------------------------------------------------------
 
 """
-
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -179,6 +172,8 @@ print("\nRelatório de Classificação:\n", classification_report(y_test, y_pred
 """
 
 #----------------------------------------------------------------------------------------------------------
+
+"""
 
 #bibliotecas
 
@@ -206,6 +201,99 @@ print("\nF1: ", f1_score(y_test, y_pred))
 
 print("\nMatriz de Confusao: " "\n", confusion_matrix(y_test, y_pred))
 print("\nRelatorio de classificação: " "\n", classification_report(y_test, y_pred))
+
+"""
+
+
+#----------------------------------------------------------------------------------------------------------
+
+import torch                                  #é a base do PyTorch, lida com tensores (como arrays do NumPy, mas com GPU).
+import torch.nn as nn                         #tem blocos prontos para redes neurais (camadas, funções de ativação).
+import torch.optim as optim                   #otimizadores (Adam, SGD).
+import torchvision                            #datasets e transformações de imagens.
+import torchvision.transforms as transforms
+
+#Datasets
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])   # converte imagem para tensor (PyTorch entende tensores, não imagens) ( "transform.Normalize" normaliza os pixels (-1 a 1))
+
+trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)      #dataset de dígitos escritos à mão (60.000 treino, 10.000 teste, imagens 28x28).
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)                          #cria "lotes" (batch) de 64 imagens de cada vez. Isso economiza memória e acelera o treino.
+
+testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
+
+#Modelo
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(28*28, 128)          # camada densa com 128 neurônios                   #nn.Linear(in_features, out_features) = camada totalmente conectada.
+        self.fc2 = nn.Linear(128, 10)   #128 → 10 neurônios (para os dígitos de 0 a 9).
+    def forward(self, x):
+        x = x.view(-1, 28*28)
+        x = torch.relu(self.fc1(x))                         #Função de ativação ReLU (Rectified Linear Unit) deixa a rede aprender relações não-lineares.
+        x = self.fc2(x)
+        return x
+
+
+#Loss e Otimizador
+model = Net()
+criterion =  nn.CrossEntropyLoss()                          # mede o erro entre previsão e resposta correta   #CrossEntropyLoss = padrão para classificação multi-classe.
+optimizer = optim.Adam(model.parameters(), lr=0.001)        # ajusta pesos da rede                            #Adam = otimizador que atualiza os pesos automaticamente.
+                                                            #lr=0.001 = taxa de aprendizado (passo que a rede dá para corrigir erros).
+
+
+#Treino
+for epoch in range(5):                                      # 5 passagens completas pelo dataset    #Epoch = uma vez que a rede vê todos os dados de treino.
+    for images, labels in trainloader:                      # pega lotes de imagens e rótulos
+        optimizer.zero_grad()                               # zera gradientes acumulados
+        outputs = model(images)                             # faz previsão                          #Forward pass = rede faz previsão.
+        loss = criterion(outputs, labels)                   # calcula erro                          #Loss = mede o quão errado a rede está.
+        loss.backward()                                     # retropropagação (backpropagation)     #Backward pass (loss.backward()) = calcula os gradientes (quanto cada peso errou).
+        optimizer.step()                                    # atualiza pesos                        #Optimizer.step() = ajusta os pesos para errar menos na próxima vez.
+
+
+#Avaliação
+correct, total = 0, 0
+with torch.no_grad():
+    for images, labels in testloader:
+        outputs = model(images)
+        _, predicted = torch.max(outputs, 1)
+        total += labels.size (0)
+        correct += (predicted == labels).sum().item()
+
+
+print(f'Acuracia no teste: {100 * correct / total:.2f}%')
+
+"""
+#teste com imagem
+
+# 6. Testar com uma imagem do computador
+from PIL import Image
+import torchvision.transforms as transforms
+
+# Carregar imagem (tem que estar na mesma pasta, ex: "meu_numero.png")
+img = Image.open("meu_numero.png").convert("L")  # escala de cinza
+
+# Transformar para o mesmo formato do MNIST
+transform = transforms.Compose([
+    transforms.Resize((28, 28)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
+
+img_tensor = transform(img)
+img_tensor = img_tensor.unsqueeze(0)  # adiciona dimensão batch [1, 1, 28, 28]
+
+# Fazer previsão
+model.eval()
+with torch.no_grad():
+    output = model(img_tensor)
+    _, predicted = torch.max(output, 1)
+
+print("O modelo acha que é o número:", predicted.item())
+
+"""
+
 
 
 
