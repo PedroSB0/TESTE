@@ -223,16 +223,18 @@ testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, 
 testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
 
 #Modelo
-class Net(nn.Module):
+class Net(nn.Module):                                                                                   #- Define uma classe chamada Net, que herda de nn.Module, a base para todas as redes neurais em PyTorch.
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28*28, 128)          # camada densa com 128 neurônios                   #nn.Linear(in_features, out_features) = camada totalmente conectada.
-        self.fc2 = nn.Linear(128, 10)   #128 → 10 neurônios (para os dígitos de 0 a 9).
+        self.fc1 = nn.Linear(28*28, 128)                                                                # - Primeira camada totalmente conectada (fully connected), que recebe uma imagem de 28x28 pixels (784 entradas) e transforma em 128 neurônios.
+        self.fc2 = nn.Linear(128, 10)   #128 → 10 neurônios (para os dígitos de 0 a 9).                 #- Segunda camada, que pega os 128 neurônios e gera 10 saídas, correspondendo aos dígitos de 0 a 9.
+
     def forward(self, x):
-        x = x.view(-1, 28*28)
-        x = torch.relu(self.fc1(x))                         #Função de ativação ReLU (Rectified Linear Unit) deixa a rede aprender relações não-lineares.
-        x = self.fc2(x)
-        return x
+        x = x.view(-1, 28*28)                                                                           #- Redimensiona o tensor de entrada (imagem) para um vetor de 784 elementos. O -1 deixa o PyTorch calcular automaticamente o tamanho do batch.
+        x = torch.relu(self.fc1(x))                                                                     #Função de ativação ReLU (Rectified Linear Unit) deixa a rede aprender relações não-lineares.
+        x = self.fc2(x)                                                                                 #Passa pela segunda camada, que gera os logits (valores brutos antes do softmax).
+        return x                                                                                        #- Retorna os logits, que depois serão usados para calcular a probabilidade de cada classe.
+                                                                                                        #Em poucas palavras Essa rede é ideal para tarefas como: - Classificar imagens de dígitos manuscritos (ex: MNIST) - Reconhecer padrões simples em imagens pequenas
 
 
 #Loss e Otimizador
@@ -253,16 +255,46 @@ for epoch in range(5):                                      # 5 passagens comple
 
 
 #Avaliação
-correct, total = 0, 0
+correct, total = 0, 0                                       #- Inicializa dois contadores: - correct: número de previsões corretas - total: número total de amostras avaliadas
+with torch.no_grad():                                       # Evita que o PyTorch calcule gradientes durante a avaliação, economizando memória e processamento. Isso é padrão quando não estamos treinando.
+    for images, labels in testloader:
+        outputs = model(images)                             #Passa as imagens pela rede () e obtém os logits (valores brutos antes do softmax).
+        _, predicted = torch.max(outputs, 1)                #- torch.max(outputs, 1) retorna o maior valor em cada linha (cada amostra), junto com o índice da classe correspondente.
+        total += labels.size (0)                            #- labels.size(0): número de amostras no lote atual → soma ao total.
+        correct += (predicted == labels).sum().item()       #- (predicted == labels): compara previsão com rótulo verdadeiro → retorna um tensor booleano. - .sum().item(): soma os acertos e converte para número → soma ao contador de acertos.
+
+
+print(f'Acuracia no teste: {100 * correct / total:.2f}%')
+
+"""
+#Caso seja necessario uso de matriz de confusao
+
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+all_preds = []
+all_labels = []
+
 with torch.no_grad():
     for images, labels in testloader:
         outputs = model(images)
         _, predicted = torch.max(outputs, 1)
-        total += labels.size (0)
-        correct += (predicted == labels).sum().item()
+        all_preds.extend(predicted.cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
 
+# Gera a matriz
+cm = confusion_matrix(all_labels, all_preds)
 
-print(f'Acuracia no teste: {100 * correct / total:.2f}%')
+# Visualiza com Seaborn
+plt.figure(figsize=(8,6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Previsto')
+plt.ylabel('Real')
+plt.title('Matriz de Confusão')
+plt.show()
+
+"""
 
 """
 #teste com imagem
